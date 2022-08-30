@@ -1,0 +1,115 @@
+---
+title: "climatenaR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{climatenaR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+The climatenaR package is designed around the functions used to prepare and access climate data from the ClimateNA application. ClimateNA "downscales PRISM 1971-2000 gridded monthly climate normal data (800 x 800 m) to scale-free point locations." To further understand the variables and the application, please visit https://climatena.ca/.
+
+After installing the package, you may import the library.
+```{r setup}
+library(climatenaR)
+```
+Climate data is accessible from Digital Elevation Models (DEM). The two formats acceptable to the ClimateNA application are comma separated values (CSV) and the American Standard Code for Information Interchange (ASCII). While the majority of this package is designed around the CSV format, ASCII raster files are also used. 
+
+The table format for a CSV file must be specifically order and prepared to be accepted by the application. As a result, the `demToCSV` tool is first used to convert the DEM into a properly prepared CSV file, specifically formatted to be an input for any of the climate data acquisition functions.
+```{r line 1, eval=FALSE}
+# Locate the current working directory
+getwd() 
+#> [1] "E:/DEM/silvR21/vignettes"
+
+# Select the DEM file used as input for climate data
+file <- "site_DEM.tif" 
+
+# No alternative output directory is specified, so the CSV file will be ouputted to the same location
+demToCSV(file) 
+
+# Open the output CSV file
+dem <- read.csv("site_DEM.csv")
+head(dem)
+#>   ID1 ID2      lat     long       el
+#> 1 121 121 49.36102 122.5641 311.8277
+#> 2 122 122 49.36102 122.5607 443.1358
+#> 3 123 123 49.36102 122.5573 626.1150
+#> 4 124 124 49.36102 122.5538 727.7190
+#> 5 125 125 49.36102 122.5504 669.8089
+#> 6 126 126 49.36102 122.5469 506.9015
+```
+The resulting file is precisely formatted in the desired fashion for the ClimateNA application to receive it as input. The latitude and longitude are recorded as digital degrees in the Northern and Western hemispheres. It is not necessary to read the output file in your R environment; however, if projected climate data is desired, the CSV file must be relocated to the ClimateNA application's directory.
+
+## Climate Data Acquisition
+### Historical Data Acquisition
+The `histClimateNA` function can be used to access historical data. Much like with future climate projections, you should set your working directory to the same location as the ClimateNA application, but the input CSV file can be elsewhere.
+
+Using the DEM .csv file as input, a date range must be specified (`dateR`) as either a singular year (`'1980'`), a decade (`'1991_2000'`), or a 30 years period (`'1961_1990'`). For any date range, the first number must end with '1' (such as 1971) and the last number must end with '0' (such as 2000). 
+
+Three options are available for the variables' time frame (`tFrame`). These include annual (Y), seasonal (S), and monthly (M).
+
+The working directory must be changed to the same location as the ClimateNA application. Using the .exe file, an option is granted to relocate the output to any desired directory; however, if this parameter is not adjusted, the output will be located in the same directory as its input.
+
+```{r line 2, eval=FALSE}
+# Change working directory to the application's location
+setwd('E:/ClimateNA_v30')
+
+# Access monthly climate data for 1972
+histClimateNA('site_DEM.csv', '1972', 'M', 'E:/ClimateNA_v30/ClimateNA_v7.30.exe')
+
+# Access seasonal climate data for the 1980s
+histClimateNA('site_DEM.csv','1981_1990','S','E:/ClimateNA_v30/ClimateNA_v7.30.exe')
+
+# Access annual climate data for 1951 to 1980 and relocate the output
+histClimateNA('site_DEM.csv','1951_1980','Y','E:/ClimateNA_v30/ClimateNA_v7.30.exe')
+
+# Access climate data with an ASCII file
+histClimateNA('site_DEM.asc','1951_1980','Y','E:/ClimateNA_v30/ClimateNA_v7.30.exe')
+
+# Reproject ASCII output files
+setwd(paste0(getwd(),'/site_DEM_1951_1980.csv/Normal_1951_1980'))
+asciiFiles <- list.files()
+for(file in asciiFiles){
+  reprojectASCII(file)
+}
+```
+When accessing climate data using an ASCII file rather than CSV, the output ASCII files will not be projected to any coordinate system, so a reprojection must be performed to visualize the data. If the desired output projection is EPSG 4326 and the NA values are -9999, no other parameter requires adjustment.
+
+For more information concerning the output variables, please consult the ClimateNA website.
+
+### Future Climate Projection Data Acquisition
+For acquisition of future climate projections, the input files must be located within the same directory as the ClimateNA application. Only one type of date range is available to access using R. 30 years normals along with annual projections are also available, but only when opening the application, not currently with R. Much like it is done with the historical data acquisition functions, the selection of climactic variable time frames (`tFrame`) and locating the .exe file is done in a similar manner.  
+
+The `projClimateNA` tool has additional parameters where the General Circulation Models (GCM) of the Coupled Model Intercomparison Project (CMIP6) can be selected, along with four different Shared Socioeconomic Pathway (SSP) scenarios over five 20-years time frames. If left alone, these parameters are set to include the options used in the climate reports for Silva21. To further visualize and compare the projections and scenarios, please visit https://bcgov-env.shinyapps.io/cmip6-BC/.
+
+`scen` is representative of the selectable GCM projections
+
+`ssp` is the SSP scenario parameter
+
+`years` is the time frame parameter
+
+```{r line 3, eval=FALSE}
+# Change working directory to the application's location
+setwd('E:/ClimateNA_v30')
+
+# Use the same GCMs, SSPs, and time frames as used within the climate reports for Silva21
+projClimateNA20Y('site_DEM.csv','M','E:/ClimateNA_v30/ClimateNA_v7.30.exe')
+
+# Access only the 8GCM ensemble for the two "worst-case" SSP scenarios in the last 40 years of the 21st Century
+projClimateNA20Y('site_DEM.csv','M','E:/ClimateNA_v30/ClimateNA_v7.30.exe', scen = '8GCM', ssp = c('S3','S5'), years = c('Y4','Y5'))
+```
+The outputs from this function will be located within the folder in the application's directory named after the input CSV file. Each output file is appropriately named after the GCM, SSP, and time frame it represents.
+
+### Converting CSV file to TIFF
+
+To project the climate data back into a TIFF file from CSV, use `CSVtoTIFF`. You will be required to first read the data as you will be required to identify the Longitude and Latitude columns as well as the column with data you wish to display in raster format and an appropriate output name.
+```{r line 8, eval=FALSE}
+file <- read.csv("NovaScotia_ssp126Y.csv")
+CSVtoTIFF(file$Longitude, file$LAtitude, file$Tmin, "NovaScotia_ssp126Y_Tmin.tif")
+```

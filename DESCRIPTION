@@ -1,0 +1,22 @@
+Package: climatenaR
+Title: Tools to Access ClimateNA data
+Version: 1.0
+Author: Michael Burnett
+Maintainer: Michael Burnett <mdmbur19@mail.ubc.ca>
+Description: This package was created for simplifying the means of acquiring climate data from ClimateNA.
+License: MIT + file LICENSE
+Imports: 
+    sp,
+    raster,
+    terra,
+    data.table,
+    tools
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
